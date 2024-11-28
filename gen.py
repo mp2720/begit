@@ -15,9 +15,6 @@ class TrackPoint:
     time: datetime | None = None
 
 
-# км
-EARTH_RADIUS = 6371e3
-
 # углы
 STEP = 1e-4
 STEP_MAX_DISP = 1e-5
