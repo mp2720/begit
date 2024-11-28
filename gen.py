@@ -1,4 +1,3 @@
-import math
 from random import random
 import time
 from datetime import datetime
@@ -26,20 +25,22 @@ COORD_MAX_DISP = 2.5e-5
 ELEV_MAX_DISP = 3
 
 # км/ч
-SPEED = 8
+SPEED = 9
 GLOBAL_SPEED_MAX_DISP = 0.5
-LOCAL_SPEED_MAX_DISP = 0.15
+LOCAL_SPEED_MAX_DISP = 3
 
 START_TIME = "2024-11-28 18:57:01"
 
+DIST_MAX_DISP = 5
+
+DEGREES_IN_METER = 1.64e-5
+
+
+def vlen(x: float, y: float) -> float: return (x**2 + y**2)**0.5
+
 
 def dist(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    phi1 = lat1 * math.pi / 180
-    phi2 = lat2 * math.pi / 180
-    delta_lambda = (lon1 - lon2) * math.pi / 180
-    d = math.acos(math.sin(phi1) * math.sin(phi2) + math.cos(phi1)
-                  * math.cos(phi2) * math.cos(delta_lambda)) * EARTH_RADIUS
-    return d
+    return vlen(lat1 - lat2, lon1 - lon2) / DEGREES_IN_METER
 
 
 def read_points(file) -> list[TrackPoint]:
@@ -64,8 +65,6 @@ def disp(around: float, d: float) -> float:
 
 def gen_points(original: list[TrackPoint]) -> list[TrackPoint]:
     acc = 0
-
-    def vlen(x: float, y: float) -> float: return (x**2 + y**2)**0.5
 
     def point_between(x1: float, y1: float, x2: float, y2: float, m: float) -> tuple[float, float]:
         dx, dy = x2 - x1, y2 - y1
@@ -118,11 +117,14 @@ def calc_time(speed: float, start: float, points: list[TrackPoint]):
     points[0].time = datetime.fromtimestamp(start)
     t = start
     for i in range(1, len(points)):
-        d = dist(
-            points[i].lon,
-            points[i].lat,
-            points[i - 1].lon,
-            points[i - 1].lat,
+        d = vlen(
+            dist(
+                points[i].lon,
+                points[i].lat,
+                points[i - 1].lon,
+                points[i - 1].lat,
+            ),
+            points[i].elevation - points[i - 1].elevation
         )
         v = disp(speed, LOCAL_SPEED_MAX_DISP) / 3.6
         t += d / v
@@ -152,7 +154,7 @@ def gen_gpx(points: list[TrackPoint]) -> str:
 pts = read_points(sys.stdin)
 pts = gen_points(pts)
 calc_time(
-    disp(SPEED, GLOBAL_SPEED_MAX_DISP),
+    disp(SPEED - 1, GLOBAL_SPEED_MAX_DISP),
     time.mktime(
         datetime.strptime(
             START_TIME, "%Y-%m-%d %H:%M:%S"
