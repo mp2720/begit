@@ -1,0 +1,6 @@
+.envrc
+pyrightconfig.json
+venv/
+*.apk
+__pycache__/
+*.gpx
